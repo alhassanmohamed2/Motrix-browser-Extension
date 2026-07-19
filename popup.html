@@ -2,49 +2,77 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Motrix Integration</title>
+  <title>Motrix Download Manager</title>
   <link rel="stylesheet" href="popup.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="app-background"></div>
-  <div class="container">
-    <div class="header">
-      <div class="logo-wrapper">
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
         <img src="icons/icon48.png" alt="Motrix" class="logo">
+        <h1>Motrix DM</h1>
       </div>
-      <h1>Motrix Integration</h1>
-    </div>
-
-    <div class="card status-card">
-      <div class="status-row">
-        <span class="status-label">Connection</span>
-        <div class="status-badge" id="statusBadge">
-          <span class="status-dot" id="statusDot"></span>
-          <span id="statusText">Checking...</span>
-        </div>
+      <div class="status-badge" id="motrix-status" title="Motrix connection status">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-text" id="status-text">Checking…</span>
       </div>
-    </div>
+    </header>
 
-    <div class="card toggle-card">
+    <!-- Toggle Section -->
+    <section class="card toggle-section">
       <div class="toggle-row">
         <div class="toggle-info">
           <span class="toggle-label">Intercept Downloads</span>
           <span class="toggle-desc">Automatically send to Motrix</span>
         </div>
-        <label class="switch">
-          <input type="checkbox" id="interceptionToggle">
-          <span class="slider round"></span>
-        </label>
+        <div class="switch" role="switch" aria-label="Enable download interception">
+          <input type="checkbox" id="enable-toggle">
+          <span class="slider"></span>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <button id="optionsBtn" class="btn secondary-btn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-      Preferences
-    </button>
+    <!-- Direct Download Section -->
+    <section class="card download-section">
+      <div class="input-group">
+        <input type="url" id="url-input" placeholder="Paste download URL…" autocomplete="off" spellcheck="false">
+        <button id="download-btn" class="btn-download" title="Send to Motrix">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Download History -->
+    <section class="history-section">
+      <button class="history-toggle" id="history-toggle" aria-expanded="false">
+        <span>Recent Downloads</span>
+        <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <ul class="history-list" id="history-list" aria-live="polite"></ul>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <a href="#" id="options-link" class="footer-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span>Settings</span>
+      </a>
+    </footer>
   </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container" aria-live="assertive"></div>
+
   <script src="popup.js"></script>
 </body>
 </html>

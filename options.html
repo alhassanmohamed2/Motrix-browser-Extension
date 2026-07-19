@@ -2,65 +2,106 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Motrix Integration Settings</title>
+  <title>Motrix DM — Settings</title>
   <link rel="stylesheet" href="options.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="app-background"></div>
-  <div class="container">
-    <header class="header">
-      <img src="icons/icon48.png" alt="Motrix" class="logo">
+  <div class="options-container">
+    <!-- Header -->
+    <header class="options-header">
+      <img src="icons/icon48.png" alt="Motrix" class="options-logo">
       <div>
-        <h1>Motrix Integration</h1>
-        <p class="subtitle">Settings & Preferences</p>
+        <h1>Motrix Download Manager</h1>
+        <p class="subtitle">Extension Settings</p>
       </div>
     </header>
 
-    <main class="content">
-      <div class="card">
-        <h2>Connection Settings</h2>
-        
-        <div class="form-group">
-          <label for="rpcUrl">RPC Server URL</label>
-          <input type="text" id="rpcUrl" placeholder="http://127.0.0.1:16800/jsonrpc">
-          <span class="help-text">Default port for Motrix is 16800.</span>
+    <!-- Connection Section -->
+    <section class="settings-section">
+      <h2>Connection</h2>
+      <div class="setting-group">
+        <label for="rpc-url">RPC Server URL</label>
+        <div class="input-with-action">
+          <input type="url" id="rpc-url" placeholder="http://localhost:16800/jsonrpc">
+          <button id="test-btn" class="btn-icon" title="Test Connection">
+            <svg class="test-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            <svg class="spinner-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:none">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+            </svg>
+          </button>
         </div>
+        <small>Default: http://localhost:16800/jsonrpc</small>
+        <div id="test-result" class="test-result"></div>
+      </div>
+    </section>
 
-        <div class="form-group">
-          <label for="secretToken">Secret Token (Optional)</label>
-          <input type="password" id="secretToken" placeholder="Leave empty if not set">
-        </div>
+    <!-- Download Rules Section -->
+    <section class="settings-section">
+      <h2>Download Rules</h2>
+      <div class="setting-group">
+        <label for="min-size">Minimum File Size (MB)</label>
+        <input type="number" id="min-size" min="0" step="0.1" placeholder="0">
+        <small>Files smaller than this won't be intercepted (0 = intercept all sizes)</small>
+      </div>
+      <div class="setting-group">
+        <label for="excluded-ext">Excluded Extensions</label>
+        <input type="text" id="excluded-ext" placeholder="html, htm, php, asp, aspx, jsp">
+        <small>Comma-separated list of file extensions to exclude from interception</small>
+      </div>
+    </section>
 
-        <div class="btn-group">
-          <button id="testBtn" class="btn secondary-btn">Test Connection</button>
-          <span id="testResult" class="test-result"></span>
+    <!-- Video Overlay Section -->
+    <section class="settings-section">
+      <h2>Video Overlay</h2>
+      <div class="setting-group inline-setting">
+        <label for="video-overlay-toggle">Show download button on videos</label>
+        <div class="switch">
+          <input type="checkbox" id="video-overlay-toggle" checked>
+          <span class="slider"></span>
         </div>
       </div>
+      <small class="section-note">When enabled, a download button appears when you hover over videos on any website</small>
+    </section>
 
-      <div class="card">
-        <h2>Interception Rules</h2>
-        
-        <div class="form-group">
-          <label for="minFileSize">Minimum File Size (MB)</label>
-          <input type="number" id="minFileSize" min="0" placeholder="0">
-          <span class="help-text">Set to 0 to intercept all files regardless of size.</span>
-        </div>
-
-        <div class="form-group">
-          <label for="blockedExtensions">Blocked Extensions</label>
-          <input type="text" id="blockedExtensions" placeholder="html, php, torrent">
-          <span class="help-text">Comma-separated list of extensions to ignore (e.g., pdf, html, txt).</span>
+    <!-- Data Section -->
+    <section class="settings-section">
+      <h2>Data</h2>
+      <div class="setting-group">
+        <div class="button-row">
+          <button id="export-btn" class="btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Export Settings
+          </button>
+          <button id="import-btn" class="btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Import Settings
+          </button>
+          <input type="file" id="import-file" accept=".json" hidden>
         </div>
       </div>
-    </main>
+    </section>
 
-    <footer class="footer">
-      <span id="saveStatus" class="save-status"></span>
-      <button id="saveBtn" class="btn primary-btn">Save Settings</button>
-    </footer>
+    <!-- Action Buttons -->
+    <div class="button-group">
+      <button id="save-btn" class="btn-primary">Save Settings</button>
+      <button id="reset-btn" class="btn-ghost">Reset to Default</button>
+    </div>
+
+    <!-- Status Message -->
+    <div id="status-message" class="status-message"></div>
   </div>
+
   <script src="options.js"></script>
 </body>
 </html>
