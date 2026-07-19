@@ -222,8 +222,8 @@
       sourceList.appendChild(item);
     });
 
-    // For blob-only or no-source platforms, add "Download Page URL" option
-    if ((hasBlobOnly || hasNoSources) && isVideoSite) {
+    // For known video sites, or sites where we couldn't find a direct source, offer page-level options
+    if (isVideoSite || hasBlobOnly || hasNoSources) {
       const pageUrl = getVideoPageUrl();
       const pageItem = document.createElement('div');
       pageItem.className = 'motrix-source-item motrix-source-page';
@@ -243,102 +243,101 @@
       });
       sourceList.appendChild(pageItem);
 
-      // Add "Fetch Qualities" button using yt-dlp
-      const fetchItem = document.createElement('div');
-      fetchItem.className = 'motrix-source-item motrix-source-primary';
-      fetchItem.innerHTML = `
-        <span class="motrix-source-label">✨ Fetch Qualities (yt-dlp)</span>
-        <span class="motrix-source-action">Fetch</span>
-      `;
-      fetchItem.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const actionSpan = fetchItem.querySelector('.motrix-source-action');
-        const originalText = actionSpan.textContent;
-        actionSpan.textContent = 'Loading...';
-        fetchItem.style.pointerEvents = 'none';
-        
-        chrome.runtime.sendMessage({ type: 'get-ytdlp-formats', url: pageUrl }, (response) => {
-          if (chrome.runtime.lastError || !response || !response.success) {
-            actionSpan.textContent = 'Failed';
-            setTimeout(() => {
-              actionSpan.textContent = originalText;
-              fetchItem.style.pointerEvents = 'auto';
-            }, 2000);
-            return;
-          }
+      // Add "Fetch Qualities" button using yt-dlp (only useful for sites yt-dlp supports)
+      if (isVideoSite) {
+        const fetchItem = document.createElement('div');
+        fetchItem.className = 'motrix-source-item motrix-source-primary';
+        fetchItem.innerHTML = `
+          <span class="motrix-source-label">✨ Fetch Qualities (yt-dlp)</span>
+          <span class="motrix-source-action">Fetch</span>
+        `;
+        fetchItem.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           
-          // Remove the fetch and copy items
-          fetchItem.remove();
-          pageItem.remove();
+          const actionSpan = fetchItem.querySelector('.motrix-source-action');
+          const originalText = actionSpan.textContent;
+          actionSpan.textContent = 'Loading...';
+          fetchItem.style.pointerEvents = 'none';
           
-          const title = response.title || 'video';
-          const formats = response.formats || [];
-          
-          if (formats.length === 0) {
-            const noFormats = document.createElement('div');
-            noFormats.className = 'motrix-source-item';
-            noFormats.innerHTML = `<span class="motrix-source-label">No pre-merged formats found</span>`;
-            sourceList.appendChild(noFormats);
-            return;
-          }
-          
-          formats.forEach(f => {
-            const formatItem = document.createElement('div');
-            formatItem.className = 'motrix-source-item';
-            formatItem.innerHTML = `
-              <span class="motrix-source-label">${f.label}</span>
-              <span class="motrix-source-action">Download</span>
-            `;
-            formatItem.addEventListener('click', (ev) => {
-              ev.preventDefault();
-              ev.stopPropagation();
-              
-              // We send a direct download request to background with the extracted url and headers
-              showPanelStatus(panel, 'loading', 'Sending...');
-              
-              const options = {};
-              options.out = `${title}.${f.ext || 'mp4'}`;
-              
-              if (response.headers) {
-                const headersArr = [];
-                for (const [k, v] of Object.entries(response.headers)) {
-                  headersArr.push(`${k}: ${v}`);
-                }
-                if (headersArr.length > 0) options.header = headersArr;
-              }
-              
-              // We send to Motrix directly because we already have the direct URL
-              // We can just use the standard addUri RPC
-              chrome.storage.local.get({ rpcUrl: 'http://localhost:16800/jsonrpc' }, (settings) => {
-                const payload = {
-                  jsonrpc: '2.0',
-                  id: 'motrix-dl',
-                  method: 'aria2.addUri',
-                  params: [[f.url], options]
-                };
+          chrome.runtime.sendMessage({ type: 'get-ytdlp-formats', url: pageUrl }, (response) => {
+            if (chrome.runtime.lastError || !response || !response.success) {
+              actionSpan.textContent = 'Failed';
+              setTimeout(() => {
+                actionSpan.textContent = originalText;
+                fetchItem.style.pointerEvents = 'auto';
+              }, 2000);
+              return;
+            }
+            
+            // Remove the fetch and copy items
+            fetchItem.remove();
+            pageItem.remove();
+            
+            const title = response.title || 'video';
+            const formats = response.formats || [];
+            
+            if (formats.length === 0) {
+              const noFormats = document.createElement('div');
+              noFormats.className = 'motrix-source-item';
+              noFormats.innerHTML = `<span class="motrix-source-label">No pre-merged formats found</span>`;
+              sourceList.appendChild(noFormats);
+              return;
+            }
+            
+            formats.forEach(f => {
+              const formatItem = document.createElement('div');
+              formatItem.className = 'motrix-source-item';
+              formatItem.innerHTML = `
+                <span class="motrix-source-label">${f.label}</span>
+                <span class="motrix-source-action">Download</span>
+              `;
+              formatItem.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
                 
-                fetch(settings.rpcUrl, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(payload)
-                }).then(res => res.json()).then(data => {
-                  if (data.result) {
-                    showPanelStatus(panel, 'success', 'Sent!');
-                  } else {
-                    showPanelStatus(panel, 'error', 'Error');
+                showPanelStatus(panel, 'loading', 'Sending...');
+                
+                const options = {};
+                options.out = `${title}.${f.ext || 'mp4'}`;
+                
+                if (response.headers) {
+                  const headersArr = [];
+                  for (const [k, v] of Object.entries(response.headers)) {
+                    headersArr.push(`${k}: ${v}`);
                   }
-                }).catch(() => {
-                  showPanelStatus(panel, 'error', 'Failed');
+                  if (headersArr.length > 0) options.header = headersArr;
+                }
+                
+                chrome.storage.local.get({ rpcUrl: 'http://localhost:16800/jsonrpc' }, (settings) => {
+                  const payload = {
+                    jsonrpc: '2.0',
+                    id: 'motrix-dl',
+                    method: 'aria2.addUri',
+                    params: [[f.url], options]
+                  };
+                  
+                  fetch(settings.rpcUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                  }).then(res => res.json()).then(data => {
+                    if (data.result) {
+                      showPanelStatus(panel, 'success', 'Sent!');
+                    } else {
+                      showPanelStatus(panel, 'error', 'Error');
+                    }
+                  }).catch(() => {
+                    showPanelStatus(panel, 'error', 'Failed');
+                  });
                 });
               });
+              sourceList.appendChild(formatItem);
             });
-            sourceList.appendChild(formatItem);
           });
         });
-      });
-      sourceList.appendChild(fetchItem);
+        sourceList.appendChild(fetchItem);
+      }
     }
 
     // Add blob sources last with a warning
