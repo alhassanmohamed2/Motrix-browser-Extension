@@ -232,17 +232,40 @@ chrome.downloads.onCreated.addListener(async (item) => {
         console.error('Failed to cancel download:', err);
       }
       
-      const filename = decodeURIComponent(url.split('/').pop()?.split('?')[0] || '');
-      
-      // Attempt to get referer from active tab
+      // Attempt to get referer and title from active tab
       let referer = '';
+      let pageTitle = '';
       try {
         const tabs = await chrome.tabs.query({active: true, currentWindow: true});
         if (tabs && tabs.length > 0) {
           referer = tabs[0].url;
+          pageTitle = tabs[0].title;
         }
       } catch (e) {
          // ignore
+      }
+
+      let filename = decodeURIComponent(url.split('/').pop()?.split('?')[0] || '');
+      
+      // If the filename is generic (like videoplayback), try to use the page title
+      if (filename === 'videoplayback' || filename === 'videoplayback.mp4' || filename === 'videoplayback.webm' || !filename) {
+        if (pageTitle) {
+          let cleanTitle = pageTitle.replace(/[\\/:*?"<>|]/g, '').trim();
+          if (cleanTitle.endsWith(' - YouTube')) cleanTitle = cleanTitle.replace(' - YouTube', '');
+          let ext = '.mp4';
+          if (item.mime === 'video/webm' || url.includes('mime=video%2Fwebm') || url.includes('mime=video/webm')) {
+            ext = '.webm';
+          }
+          filename = cleanTitle + ext;
+        } else {
+          filename = `videoplayback_${Date.now()}.mp4`;
+        }
+      } else if (item.filename) {
+        // If the browser resolved a good filename, use its basename
+        const browserFilename = item.filename.split(/[\\/]/).pop();
+        if (browserFilename && !browserFilename.startsWith('videoplayback')) {
+          filename = browserFilename;
+        }
       }
 
       await sendToMotrix(url, filename, referer);
@@ -271,7 +294,18 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const url = info.linkUrl || info.srcUrl;
     if (url) {
       userInitiatedDownloads.add(url);
-      const filename = decodeURIComponent(url.split('/').pop()?.split('?')[0] || '');
+      let filename = decodeURIComponent(url.split('/').pop()?.split('?')[0] || '');
+      
+      if (filename === 'videoplayback' || !filename) {
+        let cleanTitle = (tab?.title || '').replace(/[\\/:*?"<>|]/g, '').trim();
+        if (cleanTitle.endsWith(' - YouTube')) cleanTitle = cleanTitle.replace(' - YouTube', '');
+        if (cleanTitle) {
+          filename = cleanTitle + '.mp4';
+        } else {
+          filename = `videoplayback_${Date.now()}.mp4`;
+        }
+      }
+      
       await sendToMotrix(url, filename, tab?.url || '');
     }
   }
