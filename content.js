@@ -134,7 +134,21 @@
   // Overlay Panel Creation (IDM-style)
   // ============================================================
 
-  function createOverlay(video, sources) {
+  async function createOverlay(video, baseSources) {
+    // Also fetch sniffed media URLs from background
+    let sniffedUrls = [];
+    try {
+      sniffedUrls = await chrome.runtime.sendMessage({ type: 'get-sniffed-media' });
+    } catch (e) {}
+
+    // Combine baseSources and sniffedUrls
+    const sources = [...baseSources];
+    sniffedUrls.forEach(url => {
+      if (!sources.some(s => s.url === url)) {
+        sources.push({ url, label: url.includes('.m3u8') ? 'Sniffed Stream (HLS)' : 'Sniffed Media', isBlob: false });
+      }
+    });
+
     // For platforms with blob-only sources, we still show the overlay
     // with the page URL as a fallback option
     const directSources = sources.filter(s => !s.isBlob);
@@ -243,8 +257,8 @@
       });
       sourceList.appendChild(pageItem);
 
-      // Add "Fetch Qualities" button using yt-dlp (only useful for sites yt-dlp supports)
-      if (isVideoSite) {
+      // Add "Fetch Qualities" button using yt-dlp for ANY site
+      if (true) {
         const fetchItem = document.createElement('div');
         fetchItem.className = 'motrix-source-item motrix-source-primary';
         fetchItem.innerHTML = `

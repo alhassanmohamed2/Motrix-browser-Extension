@@ -27,6 +27,7 @@
     "notifications",
     "tabs",
     "webNavigation",
+    "webRequest",
     "nativeMessaging"
   ],
   "host_permissions": [

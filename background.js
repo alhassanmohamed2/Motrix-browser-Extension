@@ -380,3 +380,42 @@ setInterval(async () => {
 
 // Initial check
 isMotrixRunning().then(updateBadge);
+
+// === Media URL Sniffer ===
+const sniffedMedia = new Map();
+
+chrome.webRequest.onHeadersReceived.addListener(
+  (details) => {
+    // Look for media types or common streaming extensions
+    if (details.type === 'media' || details.url.includes('.m3u8') || details.url.includes('.mp4')) {
+      const ext = details.url.split('?')[0].split('.').pop().toLowerCase();
+      // Ignore tiny fragments, we want the manifest or main mp4
+      if (['m3u8', 'mp4', 'mkv', 'flv'].includes(ext) || details.type === 'media') {
+        const tabId = details.tabId;
+        if (tabId >= 0) {
+          if (!sniffedMedia.has(tabId)) sniffedMedia.set(tabId, new Set());
+          sniffedMedia.get(tabId).add(details.url);
+        }
+      }
+    }
+  },
+  { urls: ['<all_urls>'] }
+);
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === 'loading') {
+    sniffedMedia.delete(tabId);
+  }
+});
+
+// Expose sniffed URLs to content script
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === 'get-sniffed-media') {
+    const tabId = sender.tab ? sender.tab.id : -1;
+    if (tabId >= 0 && sniffedMedia.has(tabId)) {
+      sendResponse(Array.from(sniffedMedia.get(tabId)));
+    } else {
+      sendResponse([]);
+    }
+  }
+});
