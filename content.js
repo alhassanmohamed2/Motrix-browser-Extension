@@ -141,6 +141,8 @@
       sniffedUrls = await chrome.runtime.sendMessage({ type: 'get-sniffed-media' });
     } catch (e) {}
 
+    sniffedUrls = sniffedUrls || [];
+
     // Combine baseSources and sniffedUrls
     const sources = [...baseSources];
     sniffedUrls.forEach(url => {

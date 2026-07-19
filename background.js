@@ -371,6 +371,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     });
     return true;
   }
+
+  if (msg.type === 'get-sniffed-media') {
+    const tabId = sender.tab ? sender.tab.id : -1;
+    if (tabId >= 0 && sniffedMedia.has(tabId)) {
+      sendResponse(Array.from(sniffedMedia.get(tabId)));
+    } else {
+      sendResponse([]);
+    }
+    return false; // synchronous
+  }
 });
 
 // === Periodic Status Check ===
@@ -405,17 +415,5 @@ chrome.webRequest.onHeadersReceived.addListener(
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === 'loading') {
     sniffedMedia.delete(tabId);
-  }
-});
-
-// Expose sniffed URLs to content script
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === 'get-sniffed-media') {
-    const tabId = sender.tab ? sender.tab.id : -1;
-    if (tabId >= 0 && sniffedMedia.has(tabId)) {
-      sendResponse(Array.from(sniffedMedia.get(tabId)));
-    } else {
-      sendResponse([]);
-    }
   }
 });
