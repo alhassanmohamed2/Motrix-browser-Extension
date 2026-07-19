@@ -102,6 +102,17 @@ while True:
                         "headers": info.get("http_headers", {})
                     }))
                     
+                elif action == "resolve_redirect":
+                    import urllib.request
+                    req = urllib.request.Request(url, method="HEAD")
+                    try:
+                        with urllib.request.urlopen(req) as response:
+                            final_url = response.geturl()
+                            send_message(encode_message({"success": True, "final_url": final_url}))
+                    except Exception as e:
+                        # Fallback to the original URL if HEAD fails
+                        send_message(encode_message({"success": True, "final_url": url, "error": str(e)}))
+                    
                 else:
                     # Original get_best logic
                     cmd = [yt_dlp_path, "-J", "--no-playlist", "-f", "b[ext=mp4]/b", url]

@@ -93,9 +93,9 @@ async function isMotrixRunning() {
  * @param {string} filename The suggested filename.
  * @param {string} referer The referring page URL.
  */
-async function resolveWithYtDlp(url) {
+async function resolveWithYtDlp(url, action = 'get_best') {
   return new Promise((resolve) => {
-    chrome.runtime.sendNativeMessage('com.motrix.ytdlp', { url: url }, (response) => {
+    chrome.runtime.sendNativeMessage('com.motrix.ytdlp', { url: url, action: action }, (response) => {
       if (chrome.runtime.lastError) {
         resolve({ success: false, error: chrome.runtime.lastError.message });
       } else {
@@ -154,6 +154,15 @@ async function sendToMotrix(url, filename, referer) {
             options.header = options.header ? options.header.concat(headers) : headers;
           }
         }
+      }
+    }
+
+    // Aria2 drops options.out if the URL redirects (e.g. googlevideo.com CDNs)
+    // We resolve the redirect here using the native host so Aria2 receives the final URL
+    if (url.includes('googlevideo.com/videoplayback')) {
+      const redirectResponse = await resolveWithYtDlp(url, 'resolve_redirect');
+      if (redirectResponse && redirectResponse.success && redirectResponse.final_url) {
+        url = redirectResponse.final_url;
       }
     }
 
