@@ -300,8 +300,8 @@
                 
                 showPanelStatus(panel, 'loading', 'Sending...');
                 
-                const fallbackTitle = document.title ? document.title.replace(/[:\\/*?"<>|]/g, '_').trim() : 'video';
-                const finalTitle = (title && title !== 'video') ? title : fallbackTitle;
+                const fallbackTitle = document.title ? document.title.replace(/[<>:"/\\|?*\n\r]/g, '').trim() : 'video';
+                const finalTitle = (title && title !== 'video') ? title.replace(/[<>:"/\\|?*\n\r]/g, '') : fallbackTitle;
                 const outFilename = `${finalTitle}.${f.ext || 'mp4'}`;
                 
                 chrome.runtime.sendMessage({

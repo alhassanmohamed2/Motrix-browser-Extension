@@ -88,7 +88,8 @@ while True:
                             unique_formats.append(f)
                     
                     title = info.get('title', 'video')
-                    safe_title = "".join([c for c in title if c.isalpha() or c.isdigit() or c in ' -_']).rstrip()
+                    illegal_chars = '<>:"/\\|?*\n\r\t'
+                    safe_title = "".join([c for c in title if c not in illegal_chars]).rstrip()
                     safe_title = safe_title.replace(" ", "_")
                     if not safe_title: safe_title = "video"
                     
@@ -131,7 +132,9 @@ while True:
                     title = info.get('title', 'video')
                     ext = info.get('ext', 'mp4')
                     
-                    safe_title = "".join([c for c in title if c.isalpha() or c.isdigit() or c in ' -_']).rstrip()
+                    # Sanitize title (allow all characters except illegal filename ones)
+                    illegal_chars = '<>:"/\\|?*\n\r\t'
+                    safe_title = "".join([c for c in title if c not in illegal_chars]).rstrip()
                     safe_title = safe_title.replace(" ", "_")
                     if not safe_title:
                         safe_title = "video"
