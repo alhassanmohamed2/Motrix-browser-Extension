@@ -89,6 +89,7 @@ while True:
                     
                     title = info.get('title', 'video')
                     safe_title = "".join([c for c in title if c.isalpha() or c.isdigit() or c in ' -_']).rstrip()
+                    safe_title = safe_title.replace(" ", "_")
                     if not safe_title: safe_title = "video"
                     
                     with open("/tmp/motrix_host.log", "a") as f:
@@ -117,6 +118,7 @@ while True:
                     ext = info.get('ext', 'mp4')
                     
                     safe_title = "".join([c for c in title if c.isalpha() or c.isdigit() or c in ' -_']).rstrip()
+                    safe_title = safe_title.replace(" ", "_")
                     if not safe_title:
                         safe_title = "video"
                     filename = f"{safe_title}.{ext}"
