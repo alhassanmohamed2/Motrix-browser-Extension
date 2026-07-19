@@ -107,6 +107,27 @@ async function resolveWithYtDlp(url) {
 
 async function sendToMotrix(url, filename, referer) {
   try {
+    if (filename === 'videoplayback' || filename === 'videoplayback.mp4' || filename === 'videoplayback.webm' || !filename) {
+      try {
+        const tabs = await chrome.tabs.query({active: true, currentWindow: true});
+        if (tabs && tabs.length > 0) {
+          let cleanTitle = (tabs[0].title || '').replace(/[\\/:*?"<>|]/g, '').trim();
+          if (cleanTitle.endsWith(' - YouTube')) cleanTitle = cleanTitle.replace(' - YouTube', '');
+          let ext = '.mp4';
+          if (url.includes('mime=video%2Fwebm') || url.includes('mime=video/webm')) ext = '.webm';
+          if (cleanTitle) {
+            filename = cleanTitle + ext;
+          } else {
+            filename = `videoplayback_${Date.now()}${ext}`;
+          }
+        } else {
+          filename = `videoplayback_${Date.now()}.mp4`;
+        }
+      } catch (e) {
+        filename = `videoplayback_${Date.now()}.mp4`;
+      }
+    }
+
     const options = {};
     if (filename) options.out = filename;
     if (referer) options.header = [`Referer: ${referer}`];
