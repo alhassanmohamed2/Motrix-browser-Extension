@@ -30,8 +30,9 @@
   gap: 0 !important;
 }
 
-/* Show panel on video hover */
-.motrix-video-container:hover .motrix-panel {
+/* Show panel on video hover or when expanded */
+.motrix-video-container:hover .motrix-panel,
+.motrix-panel.motrix-keep-visible {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;

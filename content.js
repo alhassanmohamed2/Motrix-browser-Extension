@@ -357,6 +357,7 @@
         expanded = !expanded;
         panelContent.classList.toggle('motrix-expanded', expanded);
         mainBtn.classList.toggle('motrix-active', expanded);
+        panel.classList.toggle('motrix-keep-visible', expanded);
       });
     }
 
@@ -366,6 +367,7 @@
         expanded = false;
         panelContent.classList.remove('motrix-expanded');
         mainBtn.classList.remove('motrix-active');
+        panel.classList.remove('motrix-keep-visible');
       }
     });
 
