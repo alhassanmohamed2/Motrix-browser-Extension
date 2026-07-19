@@ -150,24 +150,14 @@ async function sendToMotrix(url, filename, referer) {
     if (filename) options.out = filename;
 
     // Aria2 drops options.out if the URL redirects (e.g. googlevideo.com CDNs)
-    // We resolve the redirect here using the native host so Aria2 receives the final URL
     if (url.includes('googlevideo.com/videoplayback')) {
       const redirectResponse = await resolveWithYtDlp(url, 'resolve_redirect');
-      console.log('MotrixExt: resolve_redirect response:', redirectResponse);
-      if (redirectResponse && redirectResponse.success && redirectResponse.final_url) {
+      if (redirectResponse?.success && redirectResponse.final_url) {
         url = redirectResponse.final_url;
       }
     }
 
-    console.log('MotrixExt: Sending to Motrix -> URL:', url, 'Options:', options);
-
-    // CRITICAL FIX: Motrix v1.8.19 interceptor (RpcProxy) strips options.out before showing the UI.
-    // To preserve the filename, we must bypass the UI by wrapping it in system.multicall.
-    // The download will start instantly in the background without popping up the Motrix dialog.
-    const rpcPayload = [
-      [{ methodName: 'aria2.addUri', params: [[url], options] }]
-    ];
-    await sendRPC('system.multicall', rpcPayload);
+    await sendRPC('aria2.addUri', [[url], options]);
 
     await addToHistory({
       url,
