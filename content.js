@@ -300,38 +300,21 @@
                 
                 showPanelStatus(panel, 'loading', 'Sending...');
                 
-                const options = {};
-                options.out = `${title}.${f.ext || 'mp4'}`;
+                const fallbackTitle = document.title ? document.title.replace(/[:\\/*?"<>|]/g, '_').trim() : 'video';
+                const finalTitle = (title && title !== 'video') ? title : fallbackTitle;
+                const outFilename = `${finalTitle}.${f.ext || 'mp4'}`;
                 
-                if (response.headers) {
-                  const headersArr = [];
-                  for (const [k, v] of Object.entries(response.headers)) {
-                    headersArr.push(`${k}: ${v}`);
+                chrome.runtime.sendMessage({
+                  type: 'send-to-motrix',
+                  url: f.url,
+                  filename: outFilename,
+                  referer: window.location.href
+                }, (response) => {
+                  if (chrome.runtime.lastError || !response || !response.success) {
+                    showPanelStatus(panel, 'error', response?.error || 'Failed');
+                  } else {
+                    showPanelStatus(panel, 'success', 'Sent to Motrix!');
                   }
-                  if (headersArr.length > 0) options.header = headersArr;
-                }
-                
-                chrome.storage.local.get({ rpcUrl: 'http://localhost:16800/jsonrpc' }, (settings) => {
-                  const payload = {
-                    jsonrpc: '2.0',
-                    id: 'motrix-dl',
-                    method: 'aria2.addUri',
-                    params: [[f.url], options]
-                  };
-                  
-                  fetch(settings.rpcUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                  }).then(res => res.json()).then(data => {
-                    if (data.result) {
-                      showPanelStatus(panel, 'success', 'Sent!');
-                    } else {
-                      showPanelStatus(panel, 'error', 'Error');
-                    }
-                  }).catch(() => {
-                    showPanelStatus(panel, 'error', 'Failed');
-                  });
                 });
               });
               sourceList.appendChild(formatItem);
