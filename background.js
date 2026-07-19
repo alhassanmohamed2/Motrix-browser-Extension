@@ -107,19 +107,38 @@ async function resolveWithYtDlp(url, action = 'get_best') {
 
 async function sendToMotrix(url, filename, referer) {
   try {
-    if (filename === 'videoplayback' || filename === 'videoplayback.mp4' || filename === 'videoplayback.webm' || !filename) {
+    const options = {};
+    if (referer) options.header = [`Referer: ${referer}`];
+
+    const isDirectMedia = /\.(mp4|webm|mkv|mp3|m4a|ts|m3u8)(\?|$)/i.test(url);
+    const siteTestTarget = referer || url;
+    const isVideoSite = /youtube\.com|youtu\.be|twitter\.com|x\.com|facebook\.com|instagram\.com|tiktok\.com|reddit\.com|vimeo\.com|twitch\.tv/i.test(siteTestTarget);
+
+    // Prefer resolving via yt-dlp against the *page* URL (referer), since that's
+    // where the real title lives — the raw googlevideo CDN url never has it.
+    if (isVideoSite) {
+      const resolveTarget = /youtube\.com|youtu\.be/i.test(siteTestTarget) && referer ? referer : url;
+      const ytResponse = await resolveWithYtDlp(resolveTarget);
+      if (ytResponse && ytResponse.success) {
+        if (ytResponse.direct_url) url = ytResponse.direct_url;
+        if (ytResponse.filename) filename = ytResponse.filename;
+        if (ytResponse.headers) {
+          const headers = Object.entries(ytResponse.headers).map(([k, v]) => `${k}: ${v}`);
+          options.header = options.header ? options.header.concat(headers) : headers;
+        }
+      }
+    }
+
+    // Fallback: still no usable filename? Try the active tab title, then timestamp.
+    if (!filename || filename === 'videoplayback' || filename === 'videoplayback.mp4' || filename === 'videoplayback.webm') {
       try {
         const tabs = await chrome.tabs.query({active: true, currentWindow: true});
-        if (tabs && tabs.length > 0) {
-          let cleanTitle = (tabs[0].title || '').replace(/[\\/:*?"<>|]/g, '').trim();
-          if (cleanTitle.endsWith(' - YouTube')) cleanTitle = cleanTitle.replace(' - YouTube', '');
+        let cleanTitle = (tabs?.[0]?.title || '').replace(/[\\/:*?"<>|]/g, '').trim();
+        if (cleanTitle.endsWith(' - YouTube')) cleanTitle = cleanTitle.replace(' - YouTube', '');
+        if (cleanTitle && cleanTitle.toLowerCase() !== 'youtube') {
           let ext = '.mp4';
           if (url.includes('mime=video%2Fwebm') || url.includes('mime=video/webm')) ext = '.webm';
-          if (cleanTitle) {
-            filename = cleanTitle + ext;
-          } else {
-            filename = `videoplayback_${Date.now()}${ext}`;
-          }
+          filename = cleanTitle + ext;
         } else {
           filename = `videoplayback_${Date.now()}.mp4`;
         }
@@ -128,46 +147,18 @@ async function sendToMotrix(url, filename, referer) {
       }
     }
 
-    const options = {};
     if (filename) options.out = filename;
-    if (referer) options.header = [`Referer: ${referer}`];
-
-    // Check if it's a known video page and might need yt-dlp resolution
-    // We only resolve if it's not already a direct media file
-    const isVideoSite = /youtube\.com|youtu\.be|twitter\.com|x\.com|facebook\.com|instagram\.com|tiktok\.com|reddit\.com|vimeo\.com|twitch\.tv/i.test(url);
-    const isDirectMedia = /\.(mp4|webm|mkv|mp3|m4a|ts|m3u8)(\?|$)/i.test(url);
-    
-    if (isVideoSite && !isDirectMedia) {
-      const ytResponse = await resolveWithYtDlp(url);
-      if (ytResponse && ytResponse.success && ytResponse.direct_url) {
-        url = ytResponse.direct_url;
-        if (ytResponse.filename) {
-          options.out = ytResponse.filename;
-        }
-        if (ytResponse.headers) {
-          const headers = [];
-          for (const [k, v] of Object.entries(ytResponse.headers)) {
-            headers.push(`${k}: ${v}`);
-          }
-          if (headers.length > 0) {
-            // Append referer if we have one, otherwise replace
-            options.header = options.header ? options.header.concat(headers) : headers;
-          }
-        }
-      }
-    }
 
     // Aria2 drops options.out if the URL redirects (e.g. googlevideo.com CDNs)
-    // We resolve the redirect here using the native host so Aria2 receives the final URL
     if (url.includes('googlevideo.com/videoplayback')) {
       const redirectResponse = await resolveWithYtDlp(url, 'resolve_redirect');
-      if (redirectResponse && redirectResponse.success && redirectResponse.final_url) {
+      if (redirectResponse?.success && redirectResponse.final_url) {
         url = redirectResponse.final_url;
       }
     }
 
     await sendRPC('aria2.addUri', [[url], options]);
-    
+
     await addToHistory({
       url,
       filename: filename || url.split('/').pop()?.split('?')[0] || 'Unknown',
@@ -191,7 +182,6 @@ async function sendToMotrix(url, filename, referer) {
       title: 'Motrix Error',
       message: `Failed to start download: ${error.message}`
     });
-
     return { success: false, error: error.message };
   }
 }
