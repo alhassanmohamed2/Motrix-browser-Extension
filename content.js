@@ -372,22 +372,17 @@
         e.stopPropagation();
         
         expanded = !expanded;
-        if (expanded) {
-          panelContent.style.maxHeight = panelContent.scrollHeight + 'px';
-          panelContent.style.opacity = '1';
-        } else {
-          panelContent.style.maxHeight = '0';
-          panelContent.style.opacity = '0';
-        }
+        panelContent.classList.toggle('motrix-expanded', expanded);
+        mainBtn.classList.toggle('motrix-active', expanded);
       });
-    }// Close panel when clicking outside
+    }
+
+    // Close panel when clicking outside
     document.addEventListener('click', (e) => {
       if (!panel.contains(e.target)) {
         expanded = false;
         panelContent.classList.remove('motrix-expanded');
         mainBtn.classList.remove('motrix-active');
-        panelContent.style.maxHeight = '0';
-        panelContent.style.opacity = '0';
       }
     });
 
