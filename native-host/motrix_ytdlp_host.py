@@ -30,6 +30,9 @@ while True:
             action = received_message.get("action", "get_best")
             
             try:
+                with open("/tmp/motrix_host.log", "a") as f:
+                    f.write(f"Received action: {action}, url: {url}\n")
+                
                 import shutil
                 yt_dlp_path = shutil.which("yt-dlp")
                 if not yt_dlp_path:
@@ -50,15 +53,24 @@ while True:
                     info = json.loads(res.stdout)
                     formats = []
                     for f in info.get("formats", []):
-                        # Filter for pre-merged formats (Motrix/aria2 cannot merge video+audio)
-                        if f.get("vcodec") != "none" and f.get("acodec") != "none":
+                        # Motrix/aria2 cannot merge video+audio.
+                        # Pre-merged formats (both codecs exist) max out at 720p on YouTube.
+                        # 1080p+ are video-only streams. We will include them but label them as (No Sound).
+                        if f.get("vcodec") != "none":
                             height = f.get("height", 0)
                             ext = f.get("ext", "mp4")
                             fps = f.get("fps")
-                            label = f"{height}p" if height else "Audio+Video"
+                            has_audio = f.get("acodec") != "none"
+                            
+                            label = f"{height}p" if height else "Video"
                             if height and fps and fps > 30:
                                 label += f"{int(fps)}"
+                                
+                            if not has_audio:
+                                label += " (No Sound)"
+                                
                             label += f" .{ext}"
+                            
                             formats.append({
                                 "url": f.get("url"),
                                 "label": label,
@@ -79,6 +91,9 @@ while True:
                     safe_title = "".join([c for c in title if c.isalpha() or c.isdigit() or c in ' -_']).rstrip()
                     if not safe_title: safe_title = "video"
                     
+                    with open("/tmp/motrix_host.log", "a") as f:
+                        f.write(f"Returning {len(unique_formats)} formats\n")
+                        
                     send_message(encode_message({
                         "success": True,
                         "formats": unique_formats,
@@ -115,6 +130,8 @@ while True:
                         "headers": headers
                     }))
             except Exception as e:
+                with open("/tmp/motrix_host.log", "a") as f:
+                    f.write(f"Exception: {str(e)}\n")
                 send_message(encode_message({"success": False, "error": str(e)}))
         else:
             send_message(encode_message({"success": False, "error": "No URL provided"}))
