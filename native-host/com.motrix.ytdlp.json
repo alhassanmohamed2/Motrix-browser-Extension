@@ -1,0 +1,9 @@
+{
+  "name": "com.motrix.ytdlp",
+  "description": "yt-dlp bridge for Motrix Extension",
+  "path": "/home/alhassan/Motrix browser Extenstion/native-host/motrix_ytdlp_host.py",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://pmaddnfbgneefohpmckdhkdaclegomoa/"
+  ]
+}

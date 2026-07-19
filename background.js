@@ -93,11 +93,48 @@ async function isMotrixRunning() {
  * @param {string} filename The suggested filename.
  * @param {string} referer The referring page URL.
  */
+async function resolveWithYtDlp(url) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendNativeMessage('com.motrix.ytdlp', { url: url }, (response) => {
+      if (chrome.runtime.lastError) {
+        resolve({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
+
 async function sendToMotrix(url, filename, referer) {
   try {
     const options = {};
     if (filename) options.out = filename;
     if (referer) options.header = [`Referer: ${referer}`];
+
+    // Check if it's a known video page and might need yt-dlp resolution
+    // We only resolve if it's not already a direct media file
+    const isVideoSite = /youtube\.com|youtu\.be|twitter\.com|x\.com|facebook\.com|instagram\.com|tiktok\.com|reddit\.com|vimeo\.com|twitch\.tv/i.test(url);
+    const isDirectMedia = /\.(mp4|webm|mkv|mp3|m4a|ts|m3u8)(\?|$)/i.test(url);
+    
+    if (isVideoSite && !isDirectMedia) {
+      const ytResponse = await resolveWithYtDlp(url);
+      if (ytResponse && ytResponse.success && ytResponse.direct_url) {
+        url = ytResponse.direct_url;
+        if (ytResponse.filename) {
+          options.out = ytResponse.filename;
+        }
+        if (ytResponse.headers) {
+          const headers = [];
+          for (const [k, v] of Object.entries(ytResponse.headers)) {
+            headers.push(`${k}: ${v}`);
+          }
+          if (headers.length > 0) {
+            // Append referer if we have one, otherwise replace
+            options.header = options.header ? options.header.concat(headers) : headers;
+          }
+        }
+      }
+    }
 
     await sendRPC('aria2.addUri', [[url], options]);
     
@@ -267,6 +304,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === 'get-history') {
     chrome.storage.local.get({ history: [] }).then(result => sendResponse(result.history));
+    return true;
+  }
+
+  if (msg.type === 'get-ytdlp-formats') {
+    chrome.runtime.sendNativeMessage('com.motrix.ytdlp', { action: 'get_formats', url: msg.url }, (response) => {
+      if (chrome.runtime.lastError) {
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        sendResponse(response);
+      }
+    });
     return true;
   }
 });
