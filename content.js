@@ -262,6 +262,8 @@
           
           chrome.runtime.sendMessage({ type: 'get-ytdlp-formats', url: pageUrl }, (response) => {
             if (chrome.runtime.lastError || !response || !response.success) {
+              const errMsg = chrome.runtime.lastError ? chrome.runtime.lastError.message : (response ? response.error : 'Unknown error');
+              alert("Motrix yt-dlp Error:\n" + errMsg);
               actionSpan.textContent = 'Failed';
               setTimeout(() => {
                 actionSpan.textContent = originalText;
@@ -355,8 +357,9 @@
     // --- Interactions ---
     let expanded = false;
 
-    // If only one direct source, main button downloads immediately
-    if (directSources.length === 1 && !hasBlobOnly) {
+    // If only one direct source and no other options, main button downloads immediately
+    // If isVideoSite is true, we always have 'Fetch Qualities' so we must expand the panel instead
+    if (directSources.length === 1 && !hasBlobOnly && !isVideoSite) {
       mainBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -367,18 +370,24 @@
       mainBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        
         expanded = !expanded;
-        panelContent.classList.toggle('motrix-expanded', expanded);
-        mainBtn.classList.toggle('motrix-active', expanded);
+        if (expanded) {
+          panelContent.style.maxHeight = panelContent.scrollHeight + 'px';
+          panelContent.style.opacity = '1';
+        } else {
+          panelContent.style.maxHeight = '0';
+          panelContent.style.opacity = '0';
+        }
       });
-    }
-
-    // Close panel when clicking outside
+    }// Close panel when clicking outside
     document.addEventListener('click', (e) => {
       if (!panel.contains(e.target)) {
         expanded = false;
         panelContent.classList.remove('motrix-expanded');
         mainBtn.classList.remove('motrix-active');
+        panelContent.style.maxHeight = '0';
+        panelContent.style.opacity = '0';
       }
     });
 
