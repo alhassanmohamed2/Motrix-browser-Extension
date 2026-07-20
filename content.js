@@ -162,15 +162,31 @@
     // --- LinkedIn Specific MP4 Scraper ---
     if (PLATFORM === 'linkedin') {
       try {
-        // LinkedIn stores direct MP4 URLs in JSON objects inside `<code>` blocks as "progressiveStreams"
-        const pageText = document.body.innerHTML;
+        // 1. Foogaro Method: Fetch the public version of the post to get the data-sources attribute
+        const postUrl = findPostUrl(video);
+        if (postUrl && postUrl.includes('urn:li:activity')) {
+          const res = await fetch(postUrl, { credentials: 'omit' });
+          const text = await res.text();
+          
+          // Regex to extract data-sources from the raw HTML
+          const dataSourceMatch = text.match(/data-sources="([^"]+)"/);
+          if (dataSourceMatch) {
+            const decodedStr = dataSourceMatch[1].replace(/&quot;/g, '"');
+            const sourcesArray = JSON.parse(decodedStr);
+            sourcesArray.forEach(srcObj => {
+              if (srcObj.src && !srcObj.src.includes('webvtt') && !srcObj.src.includes('caption')) {
+                sniffedUrls.push(srcObj.src);
+              }
+            });
+          }
+        }
         
-        // 1. Try to find progressiveStreams JSON arrays
+        // 2. Fallback: Parse progressiveStreams from the logged-in DOM
+        const pageText = document.body.innerHTML;
         const progressiveRegex = /"progressiveStreams":\[(.*?)]/g;
         let match;
         while ((match = progressiveRegex.exec(pageText)) !== null) {
           const streamJsonStr = match[1];
-          // Extract URLs from inside the progressiveStreams array
           const urlRegex = /"url":"(https:\/\/[^"]+)"/g;
           let urlMatch;
           while ((urlMatch = urlRegex.exec(streamJsonStr)) !== null) {
@@ -181,7 +197,7 @@
           }
         }
         
-        // 2. Fallback to older /playback/ and .mp4 patterns if needed
+        // 3. Fallback to older /playback/ and .mp4 patterns if needed
         const mp4Regex = /"(https:\/\/dms\.licdn\.com\/playback\/[^"]+)"/g;
         while ((match = mp4Regex.exec(pageText)) !== null) {
           const extractedUrl = match[1].replace(/\\u0026/g, '&').replace(/&amp;/g, '&');
