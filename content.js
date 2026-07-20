@@ -169,14 +169,23 @@
       }
     });
 
-    // Deduplicate sniffedUrls
-    sniffedUrls = [...new Set(sniffedUrls)];
-
     // Combine baseSources and sniffedUrls
     const sources = [...baseSources];
+    
+    // Track if we already added a Sniffed Stream to prevent duplicates
+    let hasSniffedStream = false;
+    let hasSniffedMedia = false;
+    
     sniffedUrls.forEach(url => {
       if (!sources.some(s => s.url === url)) {
-        sources.push({ url, label: url.includes('.m3u8') || url.includes('playlist/') ? 'Sniffed Stream (HLS)' : 'Sniffed Media', isBlob: false });
+        const isStream = url.includes('.m3u8') || url.includes('playlist/');
+        if (isStream && !hasSniffedStream) {
+          sources.push({ url, label: 'Sniffed Stream (HLS)', isBlob: false });
+          hasSniffedStream = true;
+        } else if (!isStream && !hasSniffedMedia) {
+          sources.push({ url, label: 'Sniffed Media', isBlob: false });
+          hasSniffedMedia = true;
+        }
       }
     });
 
