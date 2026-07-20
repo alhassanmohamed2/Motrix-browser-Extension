@@ -127,10 +127,24 @@
   // Get the page URL for the current video (for YouTube etc.)
   // ============================================================
 
-  function getVideoPageUrl() {
+  function getVideoPageUrl(video) {
+    if (PLATFORM === 'linkedin') {
+      // Look for the post permalink in the nearest parent container
+      // LinkedIn posts usually have a link with /feed/update/urn:li:activity: or /posts/
+      let current = video;
+      while (current && current !== document.body) {
+        // Find any anchor tag within this container that looks like a post link
+        const postLink = current.querySelector('a[href*="urn:li:activity:"], a[href*="/posts/"]');
+        if (postLink && postLink.href) {
+          // If it's a relative path or doesn't have the origin, resolve it
+          const url = new URL(postLink.href, window.location.origin);
+          return url.href.split('?')[0]; // Remove tracking params
+        }
+        current = current.parentElement;
+      }
+    }
     return window.location.href;
   }
-
   // ============================================================
   // Overlay Panel Creation (IDM-style)
   // ============================================================
@@ -241,7 +255,7 @@
 
     // For known video sites, or sites where we couldn't find a direct source, offer page-level options
     if (isVideoSite || hasBlobOnly || hasNoSources) {
-      const pageUrl = getVideoPageUrl();
+      const pageUrl = getVideoPageUrl(video);
       const pageItem = document.createElement('div');
       pageItem.className = 'motrix-source-item motrix-source-page';
       pageItem.innerHTML = `
