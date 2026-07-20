@@ -107,6 +107,26 @@ async function resolveWithYtDlp(url, action = 'get_best') {
 
 async function sendToMotrix(url, filename, referer) {
   try {
+    // If it's an HLS stream (m3u8 or ISM), Motrix's aria2 engine cannot merge the chunks properly.
+    // Instead of downloading a tiny text file, we send it to our native python helper to download using yt-dlp natively.
+    if (/\.m3u8(\?|$)/i.test(url) || /\.ism(\?|$|\/)/i.test(url) || url.includes('/playlist/vid/')) {
+      const hlsResponse = await new Promise((resolve) => {
+        chrome.runtime.sendNativeMessage('com.motrix.ytdlp', {
+          action: 'download_hls_background',
+          url: url,
+          filename: filename || 'video'
+        }, resolve);
+      });
+      
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon48.png',
+        title: 'Background Download Started',
+        message: `Motrix cannot merge HLS chunks natively. This video is being downloaded directly to your Downloads folder using the extension's background engine!`
+      });
+      return { success: true, message: 'Downloading in background' };
+    }
+
     const options = {};
     options.header = [];
     if (referer) options.header.push(`Referer: ${referer}`);

@@ -43,6 +43,28 @@ while True:
                     else:
                         yt_dlp_path = "yt-dlp"
 
+                if action == "download_hls_background":
+                    import shlex
+                    filename = received_message.get("filename", "linkedin_video")
+                    safe_title = "".join([c for c in filename if c not in '<>:"/\\|?*\n\r\t']).rstrip()
+                    safe_title = safe_title.replace(" ", "_")
+                    if not safe_title: safe_title = "video"
+                    
+                    download_dir = os.path.expanduser("~/Downloads")
+                    out_path = os.path.join(download_dir, f"{safe_title}.mp4")
+                    
+                    # Run yt-dlp in the background to download the HLS stream
+                    cmd = f'{shlex.quote(yt_dlp_path)} --cookies-from-browser chrome -o {shlex.quote(out_path)} {shlex.quote(url)}'
+                    
+                    # Start the process in the background, don't wait for it
+                    subprocess.Popen(cmd, shell=True, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    
+                    with open("/tmp/motrix_host.log", "a") as f:
+                        f.write(f"Started background download for {url} to {out_path}\n")
+                        
+                    send_message(encode_message({"success": True, "message": f"Started downloading to {out_path} in the background!"}))
+                    continue
+                    
                 if action == "get_formats":
                     cmd = [yt_dlp_path, "-J", "--no-playlist", url]
                     res = subprocess.run(cmd, capture_output=True, text=True)
