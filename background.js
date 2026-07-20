@@ -108,7 +108,31 @@ async function resolveWithYtDlp(url, action = 'get_best') {
 async function sendToMotrix(url, filename, referer) {
   try {
     const options = {};
-    if (referer) options.header = [`Referer: ${referer}`];
+    options.header = [];
+    if (referer) options.header.push(`Referer: ${referer}`);
+
+    // Extract cookies for the target site and pass them to Motrix (fixes LinkedIn 403 Forbidden errors)
+    try {
+      const urlsToGetCookies = [];
+      if (referer && referer.startsWith('http')) urlsToGetCookies.push(referer);
+      if (url && url.startsWith('http')) urlsToGetCookies.push(url);
+      
+      let allCookies = [];
+      for (const targetUrl of [...new Set(urlsToGetCookies)]) {
+        const cookies = await new Promise((resolve) => {
+          chrome.cookies.getAll({ url: targetUrl }, resolve);
+        });
+        if (cookies) allCookies = allCookies.concat(cookies);
+      }
+      
+      if (allCookies.length > 0) {
+        // Deduplicate cookies by name
+        const uniqueCookies = {};
+        allCookies.forEach(c => uniqueCookies[c.name] = c.value);
+        const cookieStr = Object.entries(uniqueCookies).map(([k, v]) => `${k}=${v}`).join('; ');
+        options.header.push(`Cookie: ${cookieStr}`);
+      }
+    } catch (e) {}
 
     const isDirectMedia = /\.(mp4|webm|mkv|mp3|m4a|ts|m3u8)(\?|$)/i.test(url);
     const siteTestTarget = referer || url;

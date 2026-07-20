@@ -28,7 +28,8 @@
     "tabs",
     "webNavigation",
     "webRequest",
-    "nativeMessaging"
+    "nativeMessaging",
+    "cookies"
   ],
   "host_permissions": [
     "<all_urls>"
