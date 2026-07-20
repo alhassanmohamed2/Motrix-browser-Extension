@@ -162,17 +162,26 @@
     // --- LinkedIn Specific MP4 Scraper ---
     if (PLATFORM === 'linkedin') {
       try {
-        // LinkedIn stores direct MP4 URLs inside `<script>` or `<code>` blocks as "progressiveUrl" or similar.
-        // The direct MP4 streams use /playback/ instead of /playlist/
+        // LinkedIn stores direct MP4 URLs in JSON objects inside `<code>` blocks as "progressiveStreams"
         const pageText = document.body.innerHTML;
-        const mp4Regex = /"(https:\/\/dms\.licdn\.com\/playback\/[^"]+)"/g;
-        const genericMp4Regex = /"(https:\/\/[^"]+\.mp4[^"]*)"/g;
+        
+        // 1. Try to find progressiveStreams JSON arrays
+        const progressiveRegex = /"progressiveStreams":\[(.*?)]/g;
         let match;
-        while ((match = mp4Regex.exec(pageText)) !== null) {
-          sniffedUrls.push(match[1].replace(/&amp;/g, '&'));
+        while ((match = progressiveRegex.exec(pageText)) !== null) {
+          const streamJsonStr = match[1];
+          // Extract URLs from inside the progressiveStreams array
+          const urlRegex = /"url":"(https:\/\/[^"]+)"/g;
+          let urlMatch;
+          while ((urlMatch = urlRegex.exec(streamJsonStr)) !== null) {
+            sniffedUrls.push(urlMatch[1].replace(/\\u0026/g, '&').replace(/&amp;/g, '&'));
+          }
         }
-        while ((match = genericMp4Regex.exec(pageText)) !== null) {
-          sniffedUrls.push(match[1].replace(/&amp;/g, '&'));
+        
+        // 2. Fallback to older /playback/ and .mp4 patterns if needed
+        const mp4Regex = /"(https:\/\/dms\.licdn\.com\/playback\/[^"]+)"/g;
+        while ((match = mp4Regex.exec(pageText)) !== null) {
+          sniffedUrls.push(match[1].replace(/\\u0026/g, '&').replace(/&amp;/g, '&'));
         }
       } catch (e) {}
     }
@@ -196,12 +205,13 @@
     
     sniffedUrls.forEach(url => {
       if (!sources.some(s => s.url === url)) {
-        const isStream = (url.includes('.m3u8') || url.includes('playlist/')) && !url.includes('.mp4');
+        // HLS playlists usually contain .m3u8 or end in /master or /manifest
+        const isStream = url.includes('.m3u8') || url.includes('master.m3u8') || url.endsWith('/manifest');
         if (isStream && !hasSniffedStream) {
           sources.push({ url, label: 'Sniffed Stream (HLS)', isBlob: false });
           hasSniffedStream = true;
         } else if (!isStream && !hasSniffedMedia) {
-          // If it's an MP4 found via our scraper, let's make the label very clear
+          // If it's not a playlist, it's a direct MP4
           sources.push({ url, label: 'Direct MP4', isBlob: false });
           hasSniffedMedia = true;
         }
