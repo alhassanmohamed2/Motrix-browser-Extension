@@ -174,14 +174,20 @@
           const urlRegex = /"url":"(https:\/\/[^"]+)"/g;
           let urlMatch;
           while ((urlMatch = urlRegex.exec(streamJsonStr)) !== null) {
-            sniffedUrls.push(urlMatch[1].replace(/\\u0026/g, '&').replace(/&amp;/g, '&'));
+            const extractedUrl = urlMatch[1].replace(/\\u0026/g, '&').replace(/&amp;/g, '&');
+            if (!extractedUrl.includes('webvtt') && !extractedUrl.includes('caption')) {
+              sniffedUrls.push(extractedUrl);
+            }
           }
         }
         
         // 2. Fallback to older /playback/ and .mp4 patterns if needed
         const mp4Regex = /"(https:\/\/dms\.licdn\.com\/playback\/[^"]+)"/g;
         while ((match = mp4Regex.exec(pageText)) !== null) {
-          sniffedUrls.push(match[1].replace(/\\u0026/g, '&').replace(/&amp;/g, '&'));
+          const extractedUrl = match[1].replace(/\\u0026/g, '&').replace(/&amp;/g, '&');
+          if (!extractedUrl.includes('webvtt') && !extractedUrl.includes('caption')) {
+            sniffedUrls.push(extractedUrl);
+          }
         }
       } catch (e) {}
     }

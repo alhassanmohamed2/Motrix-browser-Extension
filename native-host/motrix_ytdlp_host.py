@@ -3,6 +3,7 @@ import sys
 import json
 import struct
 import subprocess
+import os
 
 def get_message():
     raw_length = sys.stdin.buffer.read(4)
