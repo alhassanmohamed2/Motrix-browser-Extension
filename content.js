@@ -34,6 +34,7 @@
     if (host.includes('dailymotion.com')) return 'dailymotion';
     if (host.includes('reddit.com')) return 'reddit';
     if (host.includes('tiktok.com')) return 'tiktok';
+    if (host.includes('linkedin.com')) return 'linkedin';
     return 'generic';
   }
 
@@ -160,7 +161,7 @@
     // Don't create overlay if there's nothing useful to show
     // (except on known video platforms where we can offer the page URL)
     const isVideoSite = ['youtube', 'twitter', 'facebook', 'instagram',
-                         'vimeo', 'twitch', 'dailymotion', 'reddit', 'tiktok'].includes(PLATFORM);
+                         'vimeo', 'twitch', 'dailymotion', 'reddit', 'tiktok', 'linkedin'].includes(PLATFORM);
     if (hasNoSources && !isVideoSite) return;
 
     // Wrap the video in a container for relative positioning

@@ -112,7 +112,7 @@ async function sendToMotrix(url, filename, referer) {
 
     const isDirectMedia = /\.(mp4|webm|mkv|mp3|m4a|ts|m3u8)(\?|$)/i.test(url);
     const siteTestTarget = referer || url;
-    const isVideoSite = /youtube\.com|youtu\.be|twitter\.com|x\.com|facebook\.com|instagram\.com|tiktok\.com|reddit\.com|vimeo\.com|twitch\.tv/i.test(siteTestTarget);
+    const isVideoSite = /youtube\.com|youtu\.be|twitter\.com|x\.com|facebook\.com|instagram\.com|tiktok\.com|reddit\.com|vimeo\.com|twitch\.tv|linkedin\.com/i.test(siteTestTarget);
 
     // Prefer resolving via yt-dlp against the *page* URL (referer), since that's
     // where the real title lives — the raw googlevideo CDN url never has it.
