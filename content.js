@@ -196,7 +196,7 @@
     const resources = window.performance.getEntriesByType("resource");
     resources.forEach(r => {
       if (r.name.includes('.m3u8') || r.name.includes('.mp4') || r.name.includes('dms.licdn.com/playlist/')) {
-        if (!r.name.includes('.m4s') && !r.name.includes('seg-') && !r.name.includes('.segment')) {
+        if (!r.name.includes('.m4s') && !r.name.includes('seg-') && !r.name.includes('.segment') && !r.name.includes('webvtt') && !r.name.includes('caption')) {
           sniffedUrls.push(r.name);
         }
       }
