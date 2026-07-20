@@ -96,7 +96,9 @@ while True:
                     safe_title = safe_title.replace(" ", "_")
                     if not safe_title: safe_title = "video"
                     
-                    download_dir = os.path.expanduser("~/Downloads")
+                    download_dir = os.path.expanduser("~/Downloads/Videos")
+                    if not os.path.exists(download_dir):
+                        os.makedirs(download_dir, exist_ok=True)
                     out_path = os.path.join(download_dir, f"{safe_title}.mp4")
                     
                     # Run yt-dlp in the background to download the HLS stream

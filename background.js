@@ -253,6 +253,38 @@ async function sendToMotrix(url, filename, referer) {
     }
 
     if (filename) options.out = filename;
+    
+    try {
+      // Determine category based on extension
+      let subfolder = 'Others';
+      const extMatch = filename ? filename.match(/\.([^.]+)$/) : url.match(/\.([^.?]+)(?:\?|$)/);
+      if (extMatch) {
+        const ext = extMatch[1].toLowerCase();
+        if (['mp4', 'webm', 'mkv', 'avi', 'mov', 'flv', 'ts'].includes(ext)) {
+          subfolder = 'Videos';
+        } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) {
+          subfolder = 'Images';
+        } else if (['mp3', 'wav', 'm4a', 'flac', 'ogg'].includes(ext)) {
+          subfolder = 'Audio';
+        } else if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'md'].includes(ext)) {
+          subfolder = 'Documents';
+        } else if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2'].includes(ext)) {
+          subfolder = 'Archives';
+        } else if (['exe', 'msi', 'dmg', 'apk', 'deb', 'rpm'].includes(ext)) {
+          subfolder = 'Programs';
+        }
+      }
+
+      // Get Motrix default download directory
+      const globalOpts = await sendRPC('aria2.getGlobalOption');
+      if (globalOpts && globalOpts.dir) {
+        // Append subfolder, using correct path separator (handling Windows and Unix)
+        const separator = globalOpts.dir.includes('\\') ? '\\' : '/';
+        options.dir = globalOpts.dir.endsWith(separator) ? `${globalOpts.dir}${subfolder}` : `${globalOpts.dir}${separator}${subfolder}`;
+      }
+    } catch (e) {
+      console.warn("Failed to set subfolder:", e);
+    }
 
     // Aria2 drops options.out if the URL redirects (e.g. googlevideo.com CDNs)
     if (url.includes('googlevideo.com/videoplayback')) {
