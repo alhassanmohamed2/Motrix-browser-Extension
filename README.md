@@ -67,6 +67,8 @@ Click the extension icon → **Settings** (gear icon) to configure:
 
 This extension was recently rewritten and massively upgraded to provide a premium experience:
 - **`yt-dlp` Native Bridge:** The biggest addition! The extension now natively communicates with `yt-dlp` on your OS. It automatically extracts direct `.mp4` streams from complex sites like YouTube, Twitter, and TikTok. 
+- **LinkedIn Video Scraper:** Integrated the `foogaro` python logic into the Native Host! LinkedIn hides its MP4s behind auth walls and broken HLS chunks. The extension now silently fetches LinkedIn's public SSR HTML, extracts the true `.mp4` URL using the `data-sources` attribute, and sends it directly to Motrix!
+- **Auto-Organization:** Downloads are now automatically categorized into neat subfolders inside your Motrix download directory based on file extension (e.g., `Videos`, `Images`, `Audio`, `Documents`, `Programs`, `Archives`).
 - **Quality Selector:** When hovering over a YouTube video, a new "Fetch Qualities" button queries `yt-dlp` and lets you choose your preferred resolution (e.g., 1080p, 720p) before sending to Motrix.
 - **Smart Download Interception:** Fixed a critical bug where background browser downloads were blindly intercepted. The extension now strictly tracks user intent (clicks, context menus) to prevent unwanted triggers and silent failures.
 - **IDM-Style Video Overlay:** Hovering over any HTML5 video on any website now reveals a sleek, glassmorphism floating panel to download the video directly.
