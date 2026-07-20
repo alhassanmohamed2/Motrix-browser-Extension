@@ -44,6 +44,51 @@ while True:
                     else:
                         yt_dlp_path = "yt-dlp"
 
+                if action == "get_linkedin_mp4":
+                    # Foogaro method: fetch the PUBLIC (logged-out) version of the LinkedIn post.
+                    # The public SSR HTML contains a <video> tag with data-sources attribute
+                    # holding the direct MP4 URL.
+                    import requests as req_lib
+                    from bs4 import BeautifulSoup
+                    
+                    post_url = received_message.get("post_url", url)
+                    with open("/tmp/motrix_host.log", "a") as f:
+                        f.write(f"Foogaro: Fetching public HTML for {post_url}\n")
+                    
+                    res = req_lib.get(post_url, headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    })
+                    soup = BeautifulSoup(res.text, features='html.parser')
+                    videos = soup.find_all('video')
+                    
+                    if videos and videos[0].get('data-sources'):
+                        import json as json_mod
+                        sources = json_mod.loads(videos[0]['data-sources'])
+                        mp4_url = sources[0]['src'] if sources else None
+                        
+                        if mp4_url:
+                            # Build a nice filename from the URL
+                            title = received_message.get("filename", "linkedin_video")
+                            safe_title = "".join([c for c in title if c not in '<>:"/\\|?*\n\r\t']).rstrip()
+                            safe_title = safe_title.replace(" ", "_")
+                            if not safe_title: safe_title = "linkedin_video"
+                            
+                            with open("/tmp/motrix_host.log", "a") as f:
+                                f.write(f"Foogaro: Found direct MP4: {mp4_url}\n")
+                            
+                            send_message(encode_message({
+                                "success": True,
+                                "direct_url": mp4_url,
+                                "filename": f"{safe_title}.mp4"
+                            }))
+                        else:
+                            send_message(encode_message({"success": False, "error": "No MP4 src found in data-sources"}))
+                    else:
+                        with open("/tmp/motrix_host.log", "a") as f:
+                            f.write(f"Foogaro: No video with data-sources found. Videos found: {len(videos)}\n")
+                        send_message(encode_message({"success": False, "error": "No video with data-sources found in public HTML"}))
+                    continue
+
                 if action == "download_hls_background":
                     import shlex
                     filename = received_message.get("filename", "linkedin_video")
