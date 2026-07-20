@@ -163,14 +163,16 @@
     if (PLATFORM === 'linkedin') {
       try {
         // LinkedIn stores direct MP4 URLs inside `<script>` or `<code>` blocks as "progressiveUrl" or similar.
+        // The direct MP4 streams use /playback/ instead of /playlist/
         const pageText = document.body.innerHTML;
-        const mp4Regex = /"(https:\/\/dms\.licdn\.com\/playlist\/vid\/[^"]+)"/g;
+        const mp4Regex = /"(https:\/\/dms\.licdn\.com\/playback\/[^"]+)"/g;
+        const genericMp4Regex = /"(https:\/\/[^"]+\.mp4[^"]*)"/g;
         let match;
         while ((match = mp4Regex.exec(pageText)) !== null) {
-          const url = match[1].replace(/&amp;/g, '&');
-          if (url.includes('mp4')) {
-            sniffedUrls.push(url);
-          }
+          sniffedUrls.push(match[1].replace(/&amp;/g, '&'));
+        }
+        while ((match = genericMp4Regex.exec(pageText)) !== null) {
+          sniffedUrls.push(match[1].replace(/&amp;/g, '&'));
         }
       } catch (e) {}
     }
