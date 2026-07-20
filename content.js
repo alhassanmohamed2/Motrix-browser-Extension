@@ -150,7 +150,6 @@
   // ============================================================
 
   async function createOverlay(video, baseSources) {
-    // Also fetch sniffed media URLs from background
     let sniffedUrls = [];
     try {
       sniffedUrls = await chrome.runtime.sendMessage({ type: 'get-sniffed-media' });
@@ -158,11 +157,24 @@
 
     sniffedUrls = sniffedUrls || [];
 
+    // Also use the browser Performance API to sniff URLs directly from the page
+    const resources = window.performance.getEntriesByType("resource");
+    resources.forEach(r => {
+      if (r.name.includes('.m3u8') || r.name.includes('.mp4') || r.name.includes('dms.licdn.com/playlist/')) {
+        if (!r.name.includes('.m4s') && !r.name.includes('seg-')) {
+          sniffedUrls.push(r.name);
+        }
+      }
+    });
+
+    // Deduplicate sniffedUrls
+    sniffedUrls = [...new Set(sniffedUrls)];
+
     // Combine baseSources and sniffedUrls
     const sources = [...baseSources];
     sniffedUrls.forEach(url => {
       if (!sources.some(s => s.url === url)) {
-        sources.push({ url, label: url.includes('.m3u8') ? 'Sniffed Stream (HLS)' : 'Sniffed Media', isBlob: false });
+        sources.push({ url, label: url.includes('.m3u8') || url.includes('playlist/') ? 'Sniffed Stream (HLS)' : 'Sniffed Media', isBlob: false });
       }
     });
 
@@ -275,7 +287,8 @@
       sourceList.appendChild(pageItem);
 
       // Add "Fetch Qualities" button using yt-dlp for ANY site
-      if (true) {
+      // (Except LinkedIn, since yt-dlp's LinkedIn extractor is currently broken on their end)
+      if (PLATFORM !== 'linkedin') {
         const fetchItem = document.createElement('div');
         fetchItem.className = 'motrix-source-item motrix-source-primary';
         fetchItem.innerHTML = `

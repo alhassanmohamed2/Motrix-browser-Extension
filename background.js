@@ -396,15 +396,19 @@ const sniffedMedia = new Map();
 
 chrome.webRequest.onHeadersReceived.addListener(
   (details) => {
-    // Look for media types or common streaming extensions
-    if (details.type === 'media' || details.url.includes('.m3u8') || details.url.includes('.mp4')) {
+    // Look for media types, common streaming extensions, or specific CDN patterns like LinkedIn's
+    const isLinkedInStream = details.url.includes('dms.licdn.com/playlist/') || details.url.includes('/sc/media/');
+    if (details.type === 'media' || details.url.includes('.m3u8') || details.url.includes('.mp4') || isLinkedInStream) {
       const ext = details.url.split('?')[0].split('.').pop().toLowerCase();
       // Ignore tiny fragments, we want the manifest or main mp4
-      if (['m3u8', 'mp4', 'mkv', 'flv'].includes(ext) || details.type === 'media') {
-        const tabId = details.tabId;
-        if (tabId >= 0) {
-          if (!sniffedMedia.has(tabId)) sniffedMedia.set(tabId, new Set());
-          sniffedMedia.get(tabId).add(details.url);
+      if (['m3u8', 'mp4', 'mkv', 'flv'].includes(ext) || details.type === 'media' || isLinkedInStream) {
+        // Only keep manifest/playlist/mp4 (ignore .m4s or chunk streams to avoid clutter)
+        if (!details.url.includes('.m4s') && !details.url.includes('seg-')) {
+          const tabId = details.tabId;
+          if (tabId >= 0) {
+            if (!sniffedMedia.has(tabId)) sniffedMedia.set(tabId, new Set());
+            sniffedMedia.get(tabId).add(details.url);
+          }
         }
       }
     }
