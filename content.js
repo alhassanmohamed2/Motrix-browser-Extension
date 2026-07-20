@@ -152,7 +152,9 @@
   async function createOverlay(video, baseSources) {
     let sniffedUrls = [];
     try {
-      sniffedUrls = await chrome.runtime.sendMessage({ type: 'get-sniffed-media' });
+      if (chrome.runtime && chrome.runtime.sendMessage) {
+        sniffedUrls = await chrome.runtime.sendMessage({ type: 'get-sniffed-media' });
+      }
     } catch (e) {}
 
     sniffedUrls = sniffedUrls || [];
@@ -303,6 +305,16 @@
           const originalText = actionSpan.textContent;
           actionSpan.textContent = 'Loading...';
           fetchItem.style.pointerEvents = 'none';
+
+          if (!chrome.runtime || !chrome.runtime.sendMessage) {
+            alert("Extension context invalidated. Please refresh the page.");
+            actionSpan.textContent = 'Failed';
+            setTimeout(() => {
+              actionSpan.textContent = originalText;
+              fetchItem.style.pointerEvents = 'auto';
+            }, 2000);
+            return;
+          }
           
           chrome.runtime.sendMessage({ type: 'get-ytdlp-formats', url: pageUrl }, (response) => {
             if (chrome.runtime.lastError || !response || !response.success) {
