@@ -159,11 +159,27 @@
 
     sniffedUrls = sniffedUrls || [];
 
+    // --- LinkedIn Specific MP4 Scraper ---
+    if (PLATFORM === 'linkedin') {
+      try {
+        // LinkedIn stores direct MP4 URLs inside `<script>` or `<code>` blocks as "progressiveUrl" or similar.
+        const pageText = document.body.innerHTML;
+        const mp4Regex = /"(https:\/\/dms\.licdn\.com\/playlist\/vid\/[^"]+)"/g;
+        let match;
+        while ((match = mp4Regex.exec(pageText)) !== null) {
+          const url = match[1].replace(/&amp;/g, '&');
+          if (url.includes('mp4')) {
+            sniffedUrls.push(url);
+          }
+        }
+      } catch (e) {}
+    }
+
     // Also use the browser Performance API to sniff URLs directly from the page
     const resources = window.performance.getEntriesByType("resource");
     resources.forEach(r => {
       if (r.name.includes('.m3u8') || r.name.includes('.mp4') || r.name.includes('dms.licdn.com/playlist/')) {
-        if (!r.name.includes('.m4s') && !r.name.includes('seg-')) {
+        if (!r.name.includes('.m4s') && !r.name.includes('seg-') && !r.name.includes('.segment')) {
           sniffedUrls.push(r.name);
         }
       }
@@ -178,12 +194,13 @@
     
     sniffedUrls.forEach(url => {
       if (!sources.some(s => s.url === url)) {
-        const isStream = url.includes('.m3u8') || url.includes('playlist/');
+        const isStream = (url.includes('.m3u8') || url.includes('playlist/')) && !url.includes('.mp4');
         if (isStream && !hasSniffedStream) {
           sources.push({ url, label: 'Sniffed Stream (HLS)', isBlob: false });
           hasSniffedStream = true;
         } else if (!isStream && !hasSniffedMedia) {
-          sources.push({ url, label: 'Sniffed Media', isBlob: false });
+          // If it's an MP4 found via our scraper, let's make the label very clear
+          sources.push({ url, label: 'Direct MP4', isBlob: false });
           hasSniffedMedia = true;
         }
       }
