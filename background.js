@@ -447,7 +447,7 @@ chrome.webRequest.onHeadersReceived.addListener(
       // Ignore tiny fragments, we want the manifest or main mp4
       if (['m3u8', 'mp4', 'mkv', 'flv'].includes(ext) || details.type === 'media' || isLinkedInStream) {
         // Only keep manifest/playlist/mp4 (ignore .m4s or chunk streams to avoid clutter)
-        if (!details.url.includes('.m4s') && !details.url.includes('seg-')) {
+        if (!details.url.includes('.m4s') && !details.url.includes('seg-') && !details.url.includes('webvtt') && !details.url.includes('caption')) {
           const tabId = details.tabId;
           if (tabId >= 0) {
             if (!sniffedMedia.has(tabId)) sniffedMedia.set(tabId, new Set());
