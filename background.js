@@ -105,6 +105,48 @@ async function resolveWithYtDlp(url, action = 'get_best') {
   });
 }
 
+async function askUserConfirmation(message) {
+  try {
+    const tabs = await chrome.tabs.query({active: true, currentWindow: true});
+    if (tabs && tabs.length > 0) {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id },
+        func: (msg) => window.confirm(msg),
+        args: [message]
+      });
+      if (results && results.length > 0) {
+        return results[0].result;
+      }
+    }
+  } catch (e) {
+    console.error("Confirmation error:", e);
+  }
+  return true;
+}
+
+async function startBackgroundDownload(url, filename, notifyTitle, notifyMessage) {
+  const confirmed = await askUserConfirmation("Motrix cannot process this stream natively.\n\nDo you want the extension's background engine to download this video directly to your Downloads folder instead?");
+  if (!confirmed) {
+    return { success: false, error: 'User cancelled background download' };
+  }
+  
+  return new Promise((resolve) => {
+    chrome.runtime.sendNativeMessage('com.motrix.ytdlp', {
+      action: 'download_hls_background',
+      url: url,
+      filename: filename || 'video'
+    }, (response) => {
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon48.png',
+        title: notifyTitle,
+        message: notifyMessage
+      });
+      resolve({ success: true, message: 'Downloading in background' });
+    });
+  });
+}
+
 async function sendToMotrix(url, filename, referer) {
   try {
     // If it's an HLS stream (m3u8 or ISM), Motrix's aria2 engine cannot merge the chunks properly.
@@ -137,54 +179,15 @@ async function sendToMotrix(url, filename, referer) {
             // Don't return here — fall through to the normal Motrix send code below
           } else {
             // Foogaro failed, fall back to background yt-dlp download
-            const hlsResponse = await new Promise((resolve) => {
-              chrome.runtime.sendNativeMessage('com.motrix.ytdlp', {
-                action: 'download_hls_background',
-                url: url,
-                filename: filename || 'video'
-              }, resolve);
-            });
-            chrome.notifications.create({
-              type: 'basic',
-              iconUrl: 'icons/icon48.png',
-              title: 'Background Download Started',
-              message: `Downloading LinkedIn video in background to your Downloads folder.`
-            });
-            return { success: true, message: 'Downloading in background' };
+            return await startBackgroundDownload(url, filename, 'Background Download Started', 'Downloading LinkedIn video in background to your Downloads folder.');
           }
         } catch (e) {
           // If anything fails, still try background download
-          const hlsResponse = await new Promise((resolve) => {
-            chrome.runtime.sendNativeMessage('com.motrix.ytdlp', {
-              action: 'download_hls_background',
-              url: url,
-              filename: filename || 'video'
-            }, resolve);
-          });
-          chrome.notifications.create({
-            type: 'basic',
-            iconUrl: 'icons/icon48.png',
-            title: 'Background Download Started',
-            message: `Downloading video in background to your Downloads folder.`
-          });
-          return { success: true, message: 'Downloading in background' };
+          return await startBackgroundDownload(url, filename, 'Background Download Started', 'Downloading video in background to your Downloads folder.');
         }
       } else {
         // Non-LinkedIn HLS: use background downloader as before
-        const hlsResponse = await new Promise((resolve) => {
-          chrome.runtime.sendNativeMessage('com.motrix.ytdlp', {
-            action: 'download_hls_background',
-            url: url,
-            filename: filename || 'video'
-          }, resolve);
-        });
-        chrome.notifications.create({
-          type: 'basic',
-          iconUrl: 'icons/icon48.png',
-          title: 'Background Download Started',
-          message: `Motrix cannot merge HLS chunks natively. This video is being downloaded directly to your Downloads folder using the extension's background engine!`
-        });
-        return { success: true, message: 'Downloading in background' };
+        return await startBackgroundDownload(url, filename, 'Background Download Started', 'Motrix cannot merge HLS chunks natively. This video is being downloaded directly to your Downloads folder using the extension\'s background engine!');
       }
     }
 
