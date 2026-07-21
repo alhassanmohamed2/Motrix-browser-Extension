@@ -255,7 +255,12 @@
     // Wrap the video in a container for relative positioning
     // Only if not already wrapped
     let container;
-    if (video.parentElement?.classList.contains(CONTAINER_CLASS)) {
+    
+    // For YouTube, always use the main player container to avoid z-index and pointer-event conflicts
+    if (PLATFORM === 'youtube' && video.closest('.html5-video-player')) {
+      container = video.closest('.html5-video-player');
+      container.classList.add(CONTAINER_CLASS);
+    } else if (video.parentElement?.classList.contains(CONTAINER_CLASS)) {
       container = video.parentElement;
     } else {
       container = document.createElement('div');
