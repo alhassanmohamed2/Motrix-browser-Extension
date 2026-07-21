@@ -359,16 +359,24 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
 
 // === Download Interception (with user-intent guard) ===
 chrome.downloads.onCreated.addListener(async (item) => {
-  if (!state.enabled) return;
+  // Fix Manifest V3 race condition: background script might wake up and trigger this listener
+  // before the asynchronous storage load finishes. We must await the latest state from storage.
+  const storedState = await chrome.storage.local.get({
+    enabled: DEFAULTS.enabled,
+    minFileSize: DEFAULTS.minFileSize,
+    excludedExtensions: DEFAULTS.excludedExtensions
+  });
+
+  if (!storedState.enabled) return;
   
-  if (state.minFileSize > 0 && item.fileSize > 0 && item.fileSize < state.minFileSize * 1024 * 1024) {
+  if (storedState.minFileSize > 0 && item.fileSize > 0 && item.fileSize < storedState.minFileSize * 1024 * 1024) {
     return;
   }
 
   const url = item.url || item.finalUrl;
   
   const ext = url.split('?')[0].split('.').pop().toLowerCase();
-  if (state.excludedExtensions && state.excludedExtensions.includes(ext)) {
+  if (storedState.excludedExtensions && storedState.excludedExtensions.includes(ext)) {
     return;
   }
 
@@ -402,7 +410,32 @@ chrome.downloads.onCreated.addListener(async (item) => {
          // ignore
       }
 
-      let filename = decodeURIComponent(url.split('/').pop()?.split('?')[0] || '');
+      let filename = '';
+      if (item.filename) {
+        // ALWAYS prefer the filename the browser determined (from headers or content-disposition)
+        filename = item.filename.split(/[\\/]/).pop();
+      }
+      
+      // Fallback to URL extraction
+      if (!filename) {
+        filename = decodeURIComponent(url.split('/').pop()?.split('?')[0] || '');
+      }
+
+      // If the filename has no extension, try to infer it from the mime type
+      if (filename && !filename.includes('.') && item.mime) {
+         const mimeMap = { 
+           'application/pdf': '.pdf', 
+           'image/jpeg': '.jpg', 
+           'image/png': '.png', 
+           'video/mp4': '.mp4', 
+           'application/zip': '.zip',
+           'application/x-rar-compressed': '.rar',
+           'application/octet-stream': '' 
+         };
+         if (mimeMap[item.mime]) {
+           filename += mimeMap[item.mime];
+         }
+      }
       
       // If the filename is generic (like videoplayback), try to use the page title
       if (filename === 'videoplayback' || filename === 'videoplayback.mp4' || filename === 'videoplayback.webm' || !filename) {
@@ -417,15 +450,11 @@ chrome.downloads.onCreated.addListener(async (item) => {
         } else {
           filename = `videoplayback_${Date.now()}.mp4`;
         }
-      } else if (item.filename) {
-        // If the browser resolved a good filename, use its basename
-        const browserFilename = item.filename.split(/[\\/]/).pop();
-        if (browserFilename && !browserFilename.startsWith('videoplayback')) {
-          filename = browserFilename;
-        }
       }
 
-      await sendToMotrix(url, filename, referer);
+      // Use finalUrl if available (after redirects), otherwise fallback to initial URL
+      const finalDownloadUrl = item.finalUrl || url;
+      await sendToMotrix(finalDownloadUrl, filename, referer);
     }
   } catch (err) {
     console.error('Error during download interception:', err);
