@@ -293,10 +293,17 @@
     // --- Main download button (always visible on hover) ---
     const mainBtn = document.createElement('button');
     mainBtn.className = 'motrix-main-btn';
-    mainBtn.innerHTML = `
-      <span class="motrix-main-btn-icon">${ICONS.download}</span>
-      <span class="motrix-main-btn-text">Download</span>
-    `;
+    
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'motrix-main-btn-icon';
+    iconSpan.insertAdjacentHTML('beforeend', ICONS.download);
+    
+    const textSpan = document.createElement('span');
+    textSpan.className = 'motrix-main-btn-text';
+    textSpan.textContent = 'Download';
+
+    mainBtn.appendChild(iconSpan);
+    mainBtn.appendChild(textSpan);
     mainBtn.title = 'Download with Motrix';
 
     // --- Expandable panel content ---
@@ -309,15 +316,25 @@
       infoBanner.className = 'motrix-info-banner';
 
       if (PLATFORM === 'youtube') {
-        infoBanner.innerHTML = `
-          <span class="motrix-info-icon">${ICONS.info}</span>
-          <span>YouTube uses encrypted streams.<br>Click below to copy the video URL for use with a downloader tool.</span>
-        `;
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'motrix-info-icon';
+        iconSpan.insertAdjacentHTML('beforeend', ICONS.info);
+        const textSpan = document.createElement('span');
+        textSpan.textContent = 'YouTube uses encrypted streams.';
+        textSpan.appendChild(document.createElement('br'));
+        textSpan.appendChild(document.createTextNode('Click below to copy the video URL for use with a downloader tool.'));
+        infoBanner.appendChild(iconSpan);
+        infoBanner.appendChild(textSpan);
       } else {
-        infoBanner.innerHTML = `
-          <span class="motrix-info-icon">${ICONS.info}</span>
-          <span>This video uses streaming (blob URLs).<br>Direct download may not work — try the page URL.</span>
-        `;
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'motrix-info-icon';
+        iconSpan.insertAdjacentHTML('beforeend', ICONS.info);
+        const textSpan = document.createElement('span');
+        textSpan.textContent = 'This video uses streaming (blob URLs).';
+        textSpan.appendChild(document.createElement('br'));
+        textSpan.appendChild(document.createTextNode('Direct download may not work — try the page URL.'));
+        infoBanner.appendChild(iconSpan);
+        infoBanner.appendChild(textSpan);
       }
       panelContent.appendChild(infoBanner);
     }
@@ -337,10 +354,17 @@
       const pageUrl = getVideoPageUrl(video);
       const pageItem = document.createElement('div');
       pageItem.className = 'motrix-source-item motrix-source-page';
-      pageItem.innerHTML = `
-        <span class="motrix-source-label">📋 Copy Video URL</span>
-        <span class="motrix-source-action">Copy</span>
-      `;
+      
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'motrix-source-label';
+      labelSpan.textContent = '📋 Copy Video URL';
+      
+      const actionSpan = document.createElement('span');
+      actionSpan.className = 'motrix-source-action';
+      actionSpan.textContent = 'Copy';
+      
+      pageItem.appendChild(labelSpan);
+      pageItem.appendChild(actionSpan);
       pageItem.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -358,10 +382,17 @@
       if (PLATFORM !== 'linkedin') {
         const fetchItem = document.createElement('div');
         fetchItem.className = 'motrix-source-item motrix-source-primary';
-        fetchItem.innerHTML = `
-          <span class="motrix-source-label">✨ Fetch Qualities (yt-dlp)</span>
-          <span class="motrix-source-action">Fetch</span>
-        `;
+        
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'motrix-source-label';
+        labelSpan.textContent = '✨ Fetch Qualities (yt-dlp)';
+        
+        const actionSpan = document.createElement('span');
+        actionSpan.className = 'motrix-source-action';
+        actionSpan.textContent = 'Fetch';
+        
+        fetchItem.appendChild(labelSpan);
+        fetchItem.appendChild(actionSpan);
         fetchItem.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -403,7 +434,10 @@
             if (formats.length === 0) {
               const noFormats = document.createElement('div');
               noFormats.className = 'motrix-source-item';
-              noFormats.innerHTML = `<span class="motrix-source-label">No pre-merged formats found</span>`;
+              const labelSpan = document.createElement('span');
+              labelSpan.className = 'motrix-source-label';
+              labelSpan.textContent = 'No pre-merged formats found';
+              noFormats.appendChild(labelSpan);
               sourceList.appendChild(noFormats);
               return;
             }
@@ -411,10 +445,17 @@
             formats.forEach(f => {
               const formatItem = document.createElement('div');
               formatItem.className = 'motrix-source-item';
-              formatItem.innerHTML = `
-                <span class="motrix-source-label">${f.label}</span>
-                <span class="motrix-source-action">Download</span>
-              `;
+              
+              const labelSpan = document.createElement('span');
+              labelSpan.className = 'motrix-source-label';
+              labelSpan.textContent = f.label;
+              
+              const actionSpan = document.createElement('span');
+              actionSpan.className = 'motrix-source-action';
+              actionSpan.textContent = 'Download';
+              
+              formatItem.appendChild(labelSpan);
+              formatItem.appendChild(actionSpan);
               formatItem.addEventListener('click', (ev) => {
                 ev.preventDefault();
                 ev.stopPropagation();
@@ -558,6 +599,16 @@
     }
   }
 
+  function setSvgIcon(element, svgString) {
+    element.textContent = '';
+    if (!svgString) return;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgString, 'image/svg+xml');
+    if (doc.documentElement) {
+      element.appendChild(doc.documentElement);
+    }
+  }
+
   function showPanelStatus(panel, type, message) {
     const btn = panel.querySelector('.motrix-main-btn');
     if (!btn) return;
@@ -568,17 +619,17 @@
     // Save originals
     if (!btn._originalText) {
       btn._originalText = textEl.textContent;
-      btn._originalIcon = iconEl.innerHTML;
+      btn._originalIconStr = ICONS.download;
     }
 
     if (type === 'success') {
       textEl.textContent = message;
-      iconEl.innerHTML = ICONS.check;
+      setSvgIcon(iconEl, ICONS.check);
       btn.classList.add('motrix-status-success');
       btn.classList.remove('motrix-status-error', 'motrix-status-loading');
     } else if (type === 'error') {
       textEl.textContent = message;
-      iconEl.innerHTML = ICONS.x;
+      setSvgIcon(iconEl, ICONS.x);
       btn.classList.add('motrix-status-error');
       btn.classList.remove('motrix-status-success', 'motrix-status-loading');
     } else if (type === 'loading') {
@@ -591,7 +642,7 @@
     if (type !== 'loading') {
       setTimeout(() => {
         textEl.textContent = btn._originalText;
-        iconEl.innerHTML = btn._originalIcon;
+        setSvgIcon(iconEl, btn._originalIconStr);
         btn.classList.remove('motrix-status-success', 'motrix-status-error', 'motrix-status-loading');
       }, 3000);
     }

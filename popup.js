@@ -147,7 +147,7 @@ async function loadHistory() {
 }
 
 function renderHistory(items) {
-  el.historyList.innerHTML = '';
+  el.historyList.textContent = '';
 
   if (items.length === 0) {
     const empty = document.createElement('li');
@@ -160,26 +160,45 @@ function renderHistory(items) {
   items.forEach(item => {
     const li = document.createElement('li');
     li.className = 'history-item';
-    li.innerHTML = `
-      <div class="history-icon">
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'history-icon';
+    const parser = new DOMParser();
+    const svgDoc = parser.parseFromString(`
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
           <polyline points="13 2 13 9 20 9"></polyline>
-        </svg>
-      </div>
-      <div class="history-details">
-        <div class="history-filename" title="${escapeHtml(item.filename || item.url)}">${escapeHtml(item.filename || 'Unknown file')}</div>
-        <div class="history-time">${timeAgo(item.timestamp)}</div>
-      </div>
-    `;
+        </svg>`, 'image/svg+xml');
+    if (svgDoc.documentElement) {
+      iconDiv.appendChild(svgDoc.documentElement);
+    }
+
+    const detailsDiv = document.createElement('div');
+    detailsDiv.className = 'history-details';
+
+    const filenameDiv = document.createElement('div');
+    filenameDiv.className = 'history-filename';
+    filenameDiv.title = item.filename || item.url;
+    filenameDiv.textContent = item.filename || 'Unknown file';
+
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'history-time';
+    timeDiv.textContent = timeAgo(item.timestamp);
+
+    detailsDiv.appendChild(filenameDiv);
+    detailsDiv.appendChild(timeDiv);
+
+    li.appendChild(iconDiv);
+    li.appendChild(detailsDiv);
     el.historyList.appendChild(li);
   });
 }
 
 function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+  return str.replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
 }
 
 // ============================================================
