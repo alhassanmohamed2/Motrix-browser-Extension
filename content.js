@@ -296,7 +296,7 @@
     
     const iconSpan = document.createElement('span');
     iconSpan.className = 'motrix-main-btn-icon';
-    iconSpan.insertAdjacentHTML('beforeend', ICONS.download);
+    setSvgIcon(iconSpan, ICONS.download);
     
     const textSpan = document.createElement('span');
     textSpan.className = 'motrix-main-btn-text';
@@ -318,7 +318,7 @@
       if (PLATFORM === 'youtube') {
         const iconSpan = document.createElement('span');
         iconSpan.className = 'motrix-info-icon';
-        iconSpan.insertAdjacentHTML('beforeend', ICONS.info);
+        setSvgIcon(iconSpan, ICONS.info);
         const textSpan = document.createElement('span');
         textSpan.textContent = 'YouTube uses encrypted streams.';
         textSpan.appendChild(document.createElement('br'));
@@ -328,7 +328,7 @@
       } else {
         const iconSpan = document.createElement('span');
         iconSpan.className = 'motrix-info-icon';
-        iconSpan.insertAdjacentHTML('beforeend', ICONS.info);
+        setSvgIcon(iconSpan, ICONS.info);
         const textSpan = document.createElement('span');
         textSpan.textContent = 'This video uses streaming (blob URLs).';
         textSpan.appendChild(document.createElement('br'));
