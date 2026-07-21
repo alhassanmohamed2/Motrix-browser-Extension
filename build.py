@@ -66,11 +66,19 @@ def build_extension():
             del manifest['background']['service_worker']
             manifest['background']['scripts'] = [sw]
             
+        # Firefox requires options_ui instead of options_page
+        if 'options_page' in manifest:
+            manifest['options_ui'] = {
+                "page": manifest['options_page'],
+                "open_in_tab": True
+            }
+            del manifest['options_page']
+
         # Firefox requires browser_specific_settings with an ID and data_collection_permissions
         manifest['browser_specific_settings'] = {
             "gecko": {
                 "id": "{78e47012-70b7-4c40-8b63-a75d52c6b45a}",
-                "strict_min_version": "109.0",
+                "strict_min_version": "142.0",
                 "data_collection_permissions": {
                     "required": ["none"]
                 }
