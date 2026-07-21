@@ -69,7 +69,7 @@ def build_extension():
         # Firefox requires browser_specific_settings with an ID
         manifest['browser_specific_settings'] = {
             "gecko": {
-                "id": "motrix-integration@alhassan",
+                "id": "{78e47012-70b7-4c40-8b63-a75d52c6b45a}",
                 "strict_min_version": "109.0"
             }
         }
