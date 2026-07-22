@@ -602,6 +602,11 @@
   function setSvgIcon(element, svgString) {
     element.textContent = '';
     if (!svgString) return;
+    
+    if (!svgString.includes('xmlns=')) {
+      svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    
     const parser = new DOMParser();
     const doc = parser.parseFromString(svgString, 'image/svg+xml');
     if (doc.documentElement) {
